@@ -1,8 +1,10 @@
 
-import { useShoppingList } from '@/hooks/useShoppingList';
+import { useAuth } from '@/hooks/useAuth';
+import { useShoppingListSupabase } from '@/hooks/useShoppingListSupabase';
 import { ShoppingStats } from '@/components/ShoppingStats';
 import { ShoppingListItem } from '@/components/ShoppingListItem';
 import { AddItemForm } from '@/components/AddItemForm';
+import { UserMenu } from '@/components/UserMenu';
 import { ShoppingListSkeleton, StatsSkeleton } from '@/components/LoadingSkeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +14,7 @@ import { ShoppingCart, Trash2, CheckCircle, Filter } from 'lucide-react';
 import { useState } from 'react';
 
 const Index = () => {
+  const { user, loading: authLoading } = useAuth();
   const {
     items,
     isLoading,
@@ -22,21 +25,17 @@ const Index = () => {
     clearCompleted,
     clearAll,
     getStats,
-  } = useShoppingList();
+  } = useShoppingListSupabase();
 
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
-  const stats = getStats();
+  // Redirecionar para login se não autenticado
+  if (!authLoading && !user) {
+    window.location.href = '/auth';
+    return null;
+  }
 
-  const filteredItems = items.filter(item => {
-    if (filter === 'pending') return !item.completed;
-    if (filter === 'completed') return item.completed;
-    return true;
-  });
-
-  const remainingValue = stats.totalValue - stats.completedValue;
-
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -51,17 +50,35 @@ const Index = () => {
     );
   }
 
+  const stats = getStats();
+
+  const filteredItems = items.filter(item => {
+    if (filter === 'pending') return !item.completed;
+    if (filter === 'completed') return item.completed;
+    return true;
+  });
+
+  const remainingValue = stats.totalValue - stats.completedValue;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="max-w-4xl mx-auto p-4 space-y-6">
         {/* Header */}
         <div className="text-center space-y-2 mb-8 animate-fade-in">
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-            Lista de Compras
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Organize suas compras de forma prática e eficiente
-          </p>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1" />
+            <div className="text-center">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Lista de Compras
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Organize suas compras de forma prática e eficiente
+              </p>
+            </div>
+            <div className="flex-1 flex justify-end">
+              <UserMenu />
+            </div>
+          </div>
         </div>
 
         {/* Statistics */}

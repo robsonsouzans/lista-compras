@@ -65,33 +65,48 @@ export type Database = {
       shopping_items: {
         Row: {
           category: string | null
+          completed: boolean | null
+          completed_at: string | null
           created_at: string | null
           id: string
           list_id: string
           name: string
+          price: number | null
           priority: string | null
           quantity: number | null
           status: string | null
+          unit: string | null
+          user_id: string
         }
         Insert: {
           category?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
           created_at?: string | null
           id?: string
           list_id: string
           name: string
+          price?: number | null
           priority?: string | null
           quantity?: number | null
           status?: string | null
+          unit?: string | null
+          user_id: string
         }
         Update: {
           category?: string | null
+          completed?: boolean | null
+          completed_at?: string | null
           created_at?: string | null
           id?: string
           list_id?: string
           name?: string
+          price?: number | null
           priority?: string | null
           quantity?: number | null
           status?: string | null
+          unit?: string | null
+          user_id?: string
         }
         Relationships: [
           {
