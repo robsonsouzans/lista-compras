@@ -16,11 +16,12 @@ export const useShoppingList = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const addItem = (name: string, quantity: number, price: number) => {
+  const addItem = (name: string, quantity: number, unit: 'unidade' | 'kg', price: number) => {
     const newItem: ShoppingItem = {
       id: Date.now().toString(),
       name,
       quantity,
+      unit,
       price,
       completed: false,
       createdAt: new Date(),

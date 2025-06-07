@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, ShoppingCart } from 'lucide-react';
 
 interface AddItemFormProps {
-  onAddItem: (name: string, quantity: number, price: number) => void;
+  onAddItem: (name: string, quantity: number, unit: 'unidade' | 'kg', price: number) => void;
 }
 
 export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
@@ -14,6 +15,7 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
   const [form, setForm] = useState({
     name: '',
     quantity: 1,
+    unit: 'unidade' as 'unidade' | 'kg',
     price: 0,
   });
 
@@ -21,8 +23,8 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
     e.preventDefault();
     
     if (form.name.trim() && form.quantity > 0 && form.price >= 0) {
-      onAddItem(form.name.trim(), form.quantity, form.price);
-      setForm({ name: '', quantity: 1, price: 0 });
+      onAddItem(form.name.trim(), form.quantity, form.unit, form.price);
+      setForm({ name: '', quantity: 1, unit: 'unidade', price: 0 });
       setIsOpen(false);
     }
   };
@@ -61,20 +63,35 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium text-foreground">Quantidade</label>
               <Input
                 type="number"
+                step={form.unit === 'kg' ? '0.1' : '1'}
                 value={form.quantity}
                 onChange={(e) => setForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                min="1"
+                min={form.unit === 'kg' ? '0.1' : '1'}
                 required
                 className="mt-1"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Preço Unitário (R$)</label>
+              <label className="text-sm font-medium text-foreground">Unidade</label>
+              <Select value={form.unit} onValueChange={(value: 'unidade' | 'kg') => setForm(prev => ({ ...prev, unit: value }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unidade">Unidade(s)</SelectItem>
+                  <SelectItem value="kg">Kg</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">
+                Preço {form.unit === 'kg' ? 'por Kg' : 'Unitário'} (R$)
+              </label>
               <Input
                 type="number"
                 step="0.01"
@@ -97,7 +114,8 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {form.quantity}x R$ {form.price.toFixed(2)}
+                {form.quantity}{form.unit === 'kg' ? 'kg' : 'x'} R$ {form.price.toFixed(2)}
+                {form.unit === 'kg' ? '/kg' : ''}
               </p>
             </div>
           )}

@@ -3,6 +3,7 @@ export interface ShoppingItem {
   id: string;
   name: string;
   quantity: number;
+  unit: 'unidade' | 'kg';
   price: number;
   completed: boolean;
   createdAt: Date;

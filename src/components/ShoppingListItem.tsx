@@ -6,8 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Trash2, Edit, Package, DollarSign } from 'lucide-react';
+import { Trash2, Edit, Package, DollarSign, Weight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ShoppingListItemProps {
@@ -22,6 +23,7 @@ export const ShoppingListItem = ({ item, onToggle, onRemove, onUpdate }: Shoppin
   const [editForm, setEditForm] = useState({
     name: item.name,
     quantity: item.quantity,
+    unit: item.unit,
     price: item.price,
   });
 
@@ -36,9 +38,24 @@ export const ShoppingListItem = ({ item, onToggle, onRemove, onUpdate }: Shoppin
     setEditForm({
       name: item.name,
       quantity: item.quantity,
+      unit: item.unit,
       price: item.price,
     });
     setIsEditing(false);
+  };
+
+  const formatQuantity = (quantity: number, unit: string) => {
+    if (unit === 'kg') {
+      return `${quantity}kg`;
+    }
+    return `${quantity}x`;
+  };
+
+  const formatPrice = (price: number, unit: string) => {
+    if (unit === 'kg') {
+      return `R$ ${price.toFixed(2)}/kg`;
+    }
+    return `R$ ${price.toFixed(2)} cada`;
   };
 
   return (
@@ -64,12 +81,16 @@ export const ShoppingListItem = ({ item, onToggle, onRemove, onUpdate }: Shoppin
             
             <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Package className="h-3 w-3" />
-                <span>{item.quantity}x</span>
+                {item.unit === 'kg' ? (
+                  <Weight className="h-3 w-3" />
+                ) : (
+                  <Package className="h-3 w-3" />
+                )}
+                <span>{formatQuantity(item.quantity, item.unit)}</span>
               </div>
               <div className="flex items-center gap-1">
                 <DollarSign className="h-3 w-3" />
-                <span>R$ {item.price.toFixed(2)} cada</span>
+                <span>{formatPrice(item.price, item.unit)}</span>
               </div>
             </div>
           </div>
@@ -106,18 +127,33 @@ export const ShoppingListItem = ({ item, onToggle, onRemove, onUpdate }: Shoppin
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-sm font-medium">Quantidade</label>
                       <Input
                         type="number"
+                        step={editForm.unit === 'kg' ? '0.1' : '1'}
                         value={editForm.quantity}
                         onChange={(e) => setEditForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                        min="1"
+                        min={editForm.unit === 'kg' ? '0.1' : '1'}
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Preço (R$)</label>
+                      <label className="text-sm font-medium">Unidade</label>
+                      <Select value={editForm.unit} onValueChange={(value: 'unidade' | 'kg') => setEditForm(prev => ({ ...prev, unit: value }))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unidade">Unidade(s)</SelectItem>
+                          <SelectItem value="kg">Kg</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">
+                        Preço {editForm.unit === 'kg' ? 'por Kg' : 'Unitário'} (R$)
+                      </label>
                       <Input
                         type="number"
                         step="0.01"
