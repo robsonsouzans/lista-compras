@@ -8,8 +8,53 @@ import { useAuth } from '@/hooks/useAuth';
 export const useShoppingListSupabase = () => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [defaultListId, setDefaultListId] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Criar ou obter lista padrão do usuário
+  const ensureDefaultList = async () => {
+    if (!user) return null;
+
+    try {
+      // Verificar se já existe uma lista para o usuário
+      const { data: existingLists, error: fetchError } = await supabase
+        .from('shopping_lists')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Erro ao buscar listas:', fetchError);
+        return null;
+      }
+
+      if (existingLists && existingLists.length > 0) {
+        return existingLists[0].id;
+      }
+
+      // Criar lista padrão se não existir
+      const { data: newList, error: createError } = await supabase
+        .from('shopping_lists')
+        .insert({
+          user_id: user.id,
+          name: 'Minha Lista de Compras',
+          description: 'Lista padrão'
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Erro ao criar lista:', createError);
+        return null;
+      }
+
+      return newList.id;
+    } catch (error) {
+      console.error('Erro ao gerenciar lista padrão:', error);
+      return null;
+    }
+  };
 
   // Carregar itens do usuário
   const loadItems = async () => {
@@ -20,9 +65,18 @@ export const useShoppingListSupabase = () => {
     }
 
     try {
+      const listId = await ensureDefaultList();
+      if (!listId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setDefaultListId(listId);
+
       const { data, error } = await supabase
         .from('shopping_items')
         .select('*')
+        .eq('list_id', listId)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -36,11 +90,11 @@ export const useShoppingListSupabase = () => {
         const formattedItems: ShoppingItem[] = data.map(item => ({
           id: item.id,
           name: item.name,
-          quantity: Number(item.quantity),
-          unit: item.unit as 'unidade' | 'kg',
-          price: Number(item.price),
-          completed: item.completed,
-          createdAt: new Date(item.created_at),
+          quantity: Number(item.quantity || 1),
+          unit: (item.unit as 'unidade' | 'kg') || 'unidade',
+          price: Number(item.price || 0),
+          completed: item.completed || false,
+          createdAt: new Date(item.created_at || Date.now()),
           completedAt: item.completed_at ? new Date(item.completed_at) : undefined,
         }));
         setItems(formattedItems);
@@ -62,13 +116,14 @@ export const useShoppingListSupabase = () => {
   }, [user]);
 
   const addItem = async (name: string, quantity: number, unit: 'unidade' | 'kg', price: number) => {
-    if (!user) return;
+    if (!user || !defaultListId) return;
 
     try {
       const { data, error } = await supabase
         .from('shopping_items')
         .insert({
           user_id: user.id,
+          list_id: defaultListId,
           name,
           quantity,
           unit,
@@ -89,11 +144,11 @@ export const useShoppingListSupabase = () => {
         const newItem: ShoppingItem = {
           id: data.id,
           name: data.name,
-          quantity: Number(data.quantity),
-          unit: data.unit as 'unidade' | 'kg',
-          price: Number(data.price),
-          completed: data.completed,
-          createdAt: new Date(data.created_at),
+          quantity: Number(data.quantity || 1),
+          unit: (data.unit as 'unidade' | 'kg') || 'unidade',
+          price: Number(data.price || 0),
+          completed: data.completed || false,
+          createdAt: new Date(data.created_at || Date.now()),
         };
         
         setItems(prev => [newItem, ...prev]);
@@ -238,6 +293,8 @@ export const useShoppingListSupabase = () => {
   };
 
   const clearCompleted = async () => {
+    if (!defaultListId) return;
+
     const completedItems = items.filter(item => item.completed);
     const completedIds = completedItems.map(item => item.id);
 
@@ -274,13 +331,13 @@ export const useShoppingListSupabase = () => {
   };
 
   const clearAll = async () => {
-    if (!user) return;
+    if (!user || !defaultListId) return;
 
     try {
       const { error } = await supabase
         .from('shopping_items')
         .delete()
-        .eq('user_id', user.id);
+        .eq('list_id', defaultListId);
 
       if (error) {
         console.error('Erro ao limpar todos os itens:', error);
