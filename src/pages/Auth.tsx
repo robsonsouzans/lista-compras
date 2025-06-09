@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingCart, Mail, Lock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Navigate } from 'react-router-dom';
 
 const Auth = () => {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   const [loginData, setLoginData] = useState({
     email: '',
@@ -24,19 +25,25 @@ const Auth = () => {
     fullName: '',
   });
 
+  // Se o usuário já está logado, redirecionar para a página principal
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setAuthLoading(true);
 
     try {
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
+        console.error('Erro de login:', error);
         toast({
           title: "Erro no login",
           description: error.message === "Invalid login credentials" 
             ? "Email ou senha incorretos" 
-            : error.message,
+            : "Erro ao fazer login. Verifique suas credenciais.",
           variant: "destructive",
         });
       } else {
@@ -44,32 +51,44 @@ const Auth = () => {
           title: "Login realizado!",
           description: "Bem-vindo de volta!",
         });
-        window.location.href = '/';
+        // A navegação será feita automaticamente pelo Navigate acima
       }
     } catch (error) {
+      console.error('Erro inesperado no login:', error);
       toast({
         title: "Erro no login",
-        description: "Ocorreu um erro inesperado",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setAuthLoading(true);
+
+    if (signUpData.password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      setAuthLoading(false);
+      return;
+    }
 
     try {
       const { error } = await signUp(signUpData.email, signUpData.password, signUpData.fullName);
       
       if (error) {
+        console.error('Erro de cadastro:', error);
         toast({
           title: "Erro no cadastro",
           description: error.message === "User already registered" 
             ? "Este email já está cadastrado" 
-            : error.message,
+            : "Erro ao criar conta. Verifique os dados informados.",
           variant: "destructive",
         });
       } else {
@@ -80,13 +99,14 @@ const Auth = () => {
         setSignUpData({ email: '', password: '', fullName: '' });
       }
     } catch (error) {
+      console.error('Erro inesperado no cadastro:', error);
       toast({
         title: "Erro no cadastro",
-        description: "Ocorreu um erro inesperado",
+        description: "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -129,6 +149,7 @@ const Auth = () => {
                         onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -144,12 +165,13 @@ const Auth = () => {
                         onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Entrando..." : "Entrar"}
+                  <Button type="submit" className="w-full" disabled={authLoading}>
+                    {authLoading ? "Entrando..." : "Entrar"}
                   </Button>
                 </form>
               </CardContent>
@@ -174,6 +196,7 @@ const Auth = () => {
                         onChange={(e) => setSignUpData(prev => ({ ...prev, fullName: e.target.value }))}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -189,6 +212,7 @@ const Auth = () => {
                         onChange={(e) => setSignUpData(prev => ({ ...prev, email: e.target.value }))}
                         className="pl-10"
                         required
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
@@ -205,12 +229,13 @@ const Auth = () => {
                         className="pl-10"
                         required
                         minLength={6}
+                        disabled={authLoading}
                       />
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Criando conta..." : "Criar Conta"}
+                  <Button type="submit" className="w-full" disabled={authLoading}>
+                    {authLoading ? "Criando conta..." : "Criar Conta"}
                   </Button>
                 </form>
               </CardContent>

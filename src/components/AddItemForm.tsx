@@ -68,10 +68,10 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
               <label className="text-sm font-medium text-foreground">Quantidade</label>
               <Input
                 type="number"
-                step={form.unit === 'kg' ? '0.1' : '1'}
+                step={form.unit === 'kg' ? '0.0001' : '1'}
                 value={form.quantity}
                 onChange={(e) => setForm(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                min={form.unit === 'kg' ? '0.1' : '1'}
+                min={form.unit === 'kg' ? '0.0001' : '1'}
                 required
                 className="mt-1"
               />
@@ -114,7 +114,7 @@ export const AddItemForm = ({ onAddItem }: AddItemFormProps) => {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {form.quantity}{form.unit === 'kg' ? 'kg' : 'x'} R$ {form.price.toFixed(2)}
+                {form.unit === 'kg' ? form.quantity.toFixed(4) : form.quantity}{form.unit === 'kg' ? 'kg' : 'x'} × R$ {form.price.toFixed(2)}
                 {form.unit === 'kg' ? '/kg' : ''}
               </p>
             </div>
