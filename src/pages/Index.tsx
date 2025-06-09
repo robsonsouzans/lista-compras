@@ -1,7 +1,7 @@
 
 import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
-import { LoadingSkeleton } from '@/components/LoadingSkeleton';
+import { ShoppingListSkeleton } from '@/components/LoadingSkeleton';
 import { UserMenu } from '@/components/UserMenu';
 import { ShoppingListItem } from '@/components/ShoppingListItem';
 import { AddItemForm } from '@/components/AddItemForm';
@@ -28,7 +28,7 @@ const Index = () => {
   } = useShoppingListSupabaseV2(currentListId);
 
   if (loading) {
-    return <LoadingSkeleton />;
+    return <ShoppingListSkeleton />;
   }
 
   if (!user) {
@@ -94,7 +94,7 @@ const Index = () => {
             {/* Lista de Itens */}
             <div className="space-y-3">
               {itemsLoading ? (
-                <LoadingSkeleton />
+                <ShoppingListSkeleton />
               ) : items.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground text-lg">
