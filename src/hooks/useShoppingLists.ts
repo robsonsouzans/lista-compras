@@ -228,62 +228,110 @@ export const useShoppingLists = () => {
     try {
       console.log('Compartilhando lista:', { listId, userEmail });
       
-      // Primeiro, buscar o usuário pelo email no auth.users
-      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-      
-      if (userError) {
-        console.error('Erro ao buscar usuários:', userError);
-        toast({
-          title: "Erro",
-          description: "Não foi possível verificar o usuário",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const targetUser = userData.users.find(u => u.email === userEmail);
-      
-      if (!targetUser) {
-        toast({
-          title: "Usuário não encontrado",
-          description: "Não foi possível encontrar um usuário com esse email",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Verificar se a lista já não está compartilhada com este usuário
-      const { data: existingShare } = await supabase
-        .from('list_shared_users')
+      // Buscar o usuário pelo email usando a tabela profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
         .select('id')
-        .eq('list_id', listId)
-        .eq('shared_with', targetUser.id)
+        .ilike('full_name', `%${userEmail}%`) // Buscar por nome que contenha o email
         .single();
 
-      if (existingShare) {
-        toast({
-          title: "Lista já compartilhada",
-          description: "Esta lista já está compartilhada com este usuário",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (profileError || !profileData) {
+        // Se não encontrar na tabela profiles, tentar buscar todos os usuários
+        const { data: allProfiles, error: allProfilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name');
 
-      const { error } = await supabase
-        .from('list_shared_users')
-        .insert({
-          list_id: listId,
-          shared_with: targetUser.id,
-        });
+        if (allProfilesError) {
+          console.error('Erro ao buscar perfis:', allProfilesError);
+          toast({
+            title: "Erro",
+            description: "Não foi possível verificar o usuário",
+            variant: "destructive",
+          });
+          return;
+        }
 
-      if (error) {
-        console.error('Erro ao compartilhar lista:', error);
-        toast({
-          title: "Erro ao compartilhar lista",
-          description: "Não foi possível compartilhar a lista. Tente novamente.",
-          variant: "destructive",
-        });
-        return;
+        // Tentar encontrar por email no campo full_name (alguns usuários podem ter email lá)
+        const targetProfile = allProfiles?.find(profile => 
+          profile.full_name?.toLowerCase().includes(userEmail.toLowerCase())
+        );
+
+        if (!targetProfile) {
+          toast({
+            title: "Usuário não encontrado",
+            description: "Não foi possível encontrar um usuário com esse email",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Verificar se a lista já não está compartilhada com este usuário
+        const { data: existingShare } = await supabase
+          .from('list_shared_users')
+          .select('id')
+          .eq('list_id', listId)
+          .eq('shared_with', targetProfile.id)
+          .single();
+
+        if (existingShare) {
+          toast({
+            title: "Lista já compartilhada",
+            description: "Esta lista já está compartilhada com este usuário",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { error } = await supabase
+          .from('list_shared_users')
+          .insert({
+            list_id: listId,
+            shared_with: targetProfile.id,
+          });
+
+        if (error) {
+          console.error('Erro ao compartilhar lista:', error);
+          toast({
+            title: "Erro ao compartilhar lista",
+            description: "Não foi possível compartilhar a lista. Tente novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // Encontrou o usuário, prosseguir com o compartilhamento
+        const { data: existingShare } = await supabase
+          .from('list_shared_users')
+          .select('id')
+          .eq('list_id', listId)
+          .eq('shared_with', profileData.id)
+          .single();
+
+        if (existingShare) {
+          toast({
+            title: "Lista já compartilhada",
+            description: "Esta lista já está compartilhada com este usuário",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { error } = await supabase
+          .from('list_shared_users')
+          .insert({
+            list_id: listId,
+            shared_with: profileData.id,
+          });
+
+        if (error) {
+          console.error('Erro ao compartilhar lista:', error);
+          toast({
+            title: "Erro ao compartilhar lista",
+            description: "Não foi possível compartilhar a lista. Tente novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       console.log('Lista compartilhada com sucesso');
