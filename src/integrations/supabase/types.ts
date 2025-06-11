@@ -147,10 +147,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      user_has_list_access: {
-        Args: { list_id: string } | { list_id: string; user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

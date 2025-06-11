@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ShoppingList, ListShare } from '@/types/shoppingList';
 import { useToast } from '@/hooks/use-toast';
@@ -234,42 +233,33 @@ export const useShoppingLists = () => {
     try {
       console.log('Compartilhando lista:', { listId, userEmail });
       
-      // Primeiro tentar buscar pelo email na tabela auth.users via RPC ou buscar profiles
+      // Buscar usuário pelo email nos profiles
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .ilike('full_name', `%${userEmail}%`)
+        .eq('full_name', userEmail.trim())
         .maybeSingle();
 
-      let targetUserId = null;
-
-      if (profileData) {
-        targetUserId = profileData.id;
-      } else {
-        // Se não encontrou, tentar buscar por email exato
-        const { data: allProfiles, error: allProfilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name');
-
-        if (!allProfilesError && allProfiles) {
-          const targetProfile = allProfiles.find(profile => 
-            profile.full_name?.toLowerCase().includes(userEmail.toLowerCase())
-          );
-          
-          if (targetProfile) {
-            targetUserId = targetProfile.id;
-          }
-        }
-      }
-
-      if (!targetUserId) {
+      if (profileError) {
+        console.error('Erro ao buscar usuário:', profileError);
         toast({
-          title: "Usuário não encontrado",
-          description: "Não foi possível encontrar um usuário com esse email/nome",
+          title: "Erro ao buscar usuário",
+          description: "Não foi possível encontrar o usuário. Verifique o email/nome.",
           variant: "destructive",
         });
         return;
       }
+
+      if (!profileData) {
+        toast({
+          title: "Usuário não encontrado",
+          description: "Não foi possível encontrar um usuário com esse nome/email",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const targetUserId = profileData.id;
 
       // Verificar se a lista já não está compartilhada com este usuário
       const { data: existingShare } = await supabase
@@ -288,6 +278,7 @@ export const useShoppingLists = () => {
         return;
       }
 
+      // Compartilhar a lista
       const { error } = await supabase
         .from('list_shared_users')
         .insert({
